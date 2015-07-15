@@ -1,7 +1,19 @@
+<% content_for :header_tags do %>
+  <%= stylesheet_link_tag 'font_awesome',                    :plugin => 'redmine_bootstrap_kit' %>
+  <%= stylesheet_link_tag 'bootstrap-dropdown',  :plugin => 'status_button' %>
+  <%= stylesheet_link_tag 'bootstrap-dropdown-theme',  :plugin => 'status_button' %>
+  <%= stylesheet_link_tag 'select2',  :plugin => 'status_button' %>
+  <%= stylesheet_link_tag 'bootstrap-select2',  :plugin => 'status_button' %>
+
+  <%= javascript_include_tag 'bootstrap-dropdown',       :plugin => 'status_button' %>
+  <%= javascript_include_tag 'select2',       :plugin => 'status_button' %>
+
+<% end %>
+
 <%
 	if StatusButton::Hooks.is_open?(@project)
 %>
-<tr><th class="status"><%= l(:field_status) + "-->" %></th><td class="status" colspan=3><%
+<tr><th class="status"><%= l(:field_status) %></th><td class="status"><%
 # Returns an array of statuses that user is able to apply
 def all_new_statuses_allowed_to(issue)
 	user = User.current
@@ -27,15 +39,89 @@ end
 plugin = Redmine::Plugin.find(:status_button)
 setting = Setting["plugin_#{plugin.id}"] || plugin.settings[:default]
 allowed_statuses = setting[:check_all_status] ? all_new_statuses_allowed_to(@issue) : @issue.new_statuses_allowed_to()
-for status in @issue.tracker.issue_statuses
-	if @issue.status == status
-		%><b>[<%= status.name %>]</b>&emsp;<%
-	else
-		%>[<%= link_to_if allowed_statuses.include?(status),
-						status.name, "javascript:make_status(#{status.id})" %>]&emsp;<%
-	end
-end
-%></td></tr>
+%>
+
+<% status = IssueStatus.find_by_name("Accepted")
+if allowed_statuses.include?(status) and (User.current != issue.assigned_to or (User.current == issue.assigned_to and issue.status != status)) %> 
+  <%= link_to("Accept", "javascript:make_status(#{status.id}, false, #{User.current.id})", :class => 'btn btn-default') %>
+<%end%>
+
+<% status = IssueStatus.find_by_name("Queued")
+if issue.status != status and allowed_statuses.include?(status) %> 
+  <%= link_to("Merged to test", "javascript:make_resolution('fixed', 10, 4, false)", :class => 'btn btn-default') %>
+<% end %>
+
+<% status = IssueStatus.find_by_name("Ready")
+if status != issue.status and  allowed_statuses.include?(status) %> 
+  <%= link_to("Merged to live", "javascript:make_status(#{status.id}, false)", :class => 'btn btn-default') %>
+<% end %>
+
+<% status = IssueStatus.find_by_name("Test released")
+if issue.status != status and allowed_statuses.include?(status) %>
+  <%= link_to("Test released", "javascript:make_status(#{status.id}, false)", :class => 'btn btn-default') %>
+<% end %>
+
+<% status = IssueStatus.find_by_name("Live released")
+if allowed_statuses.include?(status) and issue.status == IssueStatus.find_by_name("Ready") %> 
+  <%= link_to("Live released", "javascript:make_status(#{status.id}, false)", :class => 'btn btn-default') %>
+<% end %>
+
+
+<% status = IssueStatus.find_by_name("Live released")
+if allowed_statuses.include?(status) and issue.status != IssueStatus.find_by_name("Ready") and issue.status != status %>
+<div class="btn-group">
+   <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">
+       Resolve as <span class="caret"></span>
+   </button>
+   <ul class="dropdown-menu" role="menu">
+    <li><a href="javascript:make_resolution('fixed', 10, 9, true)">Fixed</a></li>
+    <li><a href="javascript:make_resolution('invalid', 10, 9, true)">Invalid</a></li>
+    <li><a href="javascript:make_resolution('wontfix', 10, 9, true)">WontFix</a></li>
+    <li><a href="javascript:make_resolution('duplicate', 10, 9, true)">Duplicate</a></li>
+    <li><a href="javascript:make_resolution('worksforme', 10, 9, true)">Worksforme</a></li>
+  </ul>
+</div> 
+<%end%>
+
+<% status = IssueStatus.find_by_name("Scheduled")
+if issue.status != status and allowed_statuses.include?(status) %>
+  <%= link_to("Schedule", "javascript:make_status(#{status.id}, false)", :class => 'btn btn-default') %>
+<% end %>
+
+<% status = IssueStatus.find_by_name("Candidate")
+text = (issue.status==IssueStatus.find_by_name("Test released")) ? "Regression passed" : "Unschedule"
+if status != issue.status and allowed_statuses.include?(status) %> 
+  <%= link_to(text, "javascript:make_status(#{status.id}, true)", :class => 'btn btn-default') %>
+<% end %>
+
+<% status = IssueStatus.find_by_name("Reopened")
+text = (issue.status==IssueStatus.find_by_name("Test released")) ? "Regression failed" : "Reopen"
+if status != issue.status and allowed_statuses.include?(status) %>
+  <%= link_to(text, "javascript:make_status(#{status.id}, true)", :class => 'btn btn-default') %>
+<% end %>
+
+<% status = IssueStatus.find_by_name("Closed")
+if status != issue.status and allowed_statuses.include?(status) %> 
+  <%= link_to("Close", "javascript:make_status(#{status.id}, false)", :class => 'btn btn-default') %>
+<% end %>
+
+</td> <td colspan="2">
+<span id='reassignee'>
+  <% status = IssueStatus.find_by_name("Assigned")
+  if allowed_statuses.include?(status)%>
+     <%= link_to("Reassign to", "javascript:make_status(#{status.id}, true)", :class => 'btn btn-default') %>
+     <script> 
+       $(document).ready(function() {
+         $("#issue_assigned_to_id").select2( { width:'resolve'});
+         $("#s2id_issue_assigned_to_id").appendTo("#reassignee");
+         $("#issue_assigned_to_id").removeClass("select2-offscreen");
+       });
+     </script>
+
+  <%end%>
+</span>
+
+</td></tr>
 <%= javascript_include_tag "status_button.js", :plugin => 'status_button' %>
 <%
 	end
