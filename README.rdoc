@@ -3,7 +3,17 @@
 == Feature
 
 * Change the issues status by just one click.
-* Automaticly change the issues assignee according to status.
+* Easily reassign the issue
+* Quickly set resolution
+
+== Dependencies
+
+This plugin depends on the Redmine Bootstrap Kit plugin http://www.redmine.org/plugins/redmine_bootstrap_kit
+
+== TODO
+
+* Button texts are hardcoded for now, these should be translatable
+* Issue status names are hardcoded, these should be configurable from settings
 
 == Usage
 
